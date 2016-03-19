@@ -1,5 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <omp.h>//OpenMP
+#include <unistd.h>
+#include <pthread.h>
 
 #include "math-toolkit.h"
 #include "primitives.h"
@@ -13,10 +16,11 @@
 
 #define SQUARE(x) (x * x)
 #define MAX(a, b) (a > b ? a : b)
-
 /* @param t t distance
  * @return 1 means hit, otherwise 0
  */
+//pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
 static int raySphereIntersection(const point3 ray_e,
                                  const point3 ray_d,
                                  const sphere *sph,
@@ -337,8 +341,9 @@ static void calculateBasisVectors(point3 u, point3 v, point3 w,
 /* @brief protect color value overflow */
 static void protect_color_overflow(color c)
 {
-    for (int i = 0; i < 3; i++)
-        if (c[i] > 1.0) c[i] = 1.0;
+        if (c[0] > 1.0) c[0] = 1.0;
+        if (c[1] > 1.0) c[1] = 1.0;
+        if (c[2] > 1.0) c[2] = 1.0;
 }
 
 static unsigned int ray_color(const point3 e, double t,
@@ -452,34 +457,74 @@ static unsigned int ray_color(const point3 e, double t,
     return 1;
 }
 
-/* @param background_color this is not ambient light */
-void raytracing(uint8_t *pixels, color background_color,
-                rectangular_node rectangulars, sphere_node spheres,
-                light_node lights, const viewpoint *view,
-                int width, int height)
+int check = 0;
+void raytracing(void *argp)
 {
+    thread_args *args = (thread_args *)argp;
+    int height_for;
+    int height1 = (*args).height;
+    int width1 = (*args).width;	
+/*
+	if(check == 0){
+        height_for  = height1/2; 
+        width_for = width1/2;
+        beginh = 0;
+        beginw = 0;
+    }
+    else if(check == 1){
+        height_for = height1/2; 
+        width_for = width1;
+        beginh = 0;
+        beginw = width1/2;
+    }
+    else if(check == 2){ 
+        height_for = height1;
+        width_for = width1/2;
+        beginh = height1/2;
+        beginw = 0;
+    }
+    else if(check == 3){
+        height_for = height1;
+        width_for = width1;
+        beginh = height1/2;
+        beginw = width1/2;
+    }
+    check++;
+*/
+    if(check == 0)	height_for = 0;
+    else if(check == 1)	height_for = 1;
+    else if(check == 2)	height_for = 2;
+    else if(check == 3)	height_for = 3;
+    else if(check == 4)	height_for = 4;
+    else if(check == 5)	height_for = 5;
+    else if(check == 6)	height_for = 6;
+    else	height_for = 7;
+    check++;
+
     point3 u, v, w, d;
     color object_color = { 0.0, 0.0, 0.0 };
-
+    color background_color = {0.0, 0.1, 0.1};
+    const viewpoint *view = (*args).view;
+    uint8_t *pixels = args -> pixels;
     /* calculate u, v, w */
-    calculateBasisVectors(u, v, w, view);
-
+    calculateBasisVectors(u, v, w, args->view);
     idx_stack stk;
-
     int factor = sqrt(SAMPLES);
-    for (int j = 0; j < height; j++) {
-        for (int i = 0; i < width; i++) {
+
+    #pragma omp parallel for collapse(2) num_threads(32),private(object_color),private(d),private(stk)
+    for (int j = height_for; j < height1; j=j+8) {
+        for (int i = 0; i < width1; i++) {
             double r = 0, g = 0, b = 0;
-            /* MSAA */
+	    /* MSAA */
             for (int s = 0; s < SAMPLES; s++) {
-                idx_stack_init(&stk);
+ 	               idx_stack_init(&stk);
                 rayConstruction(d, u, v, w,
                                 i * factor + s / factor,
                                 j * factor + s % factor,
                                 view,
-                                width * factor, height * factor);
-                if (ray_color(view->vrp, 0.0, d, &stk, rectangulars, spheres,
-                              lights, object_color,
+                                (*args).width * factor, (*args).height * factor);
+                if (ray_color(view -> vrp, 0.0, d, &stk, (*args).rectangulars, (*args).spheres,
+                              (*args).lights, object_color,
                               MAX_REFLECTION_BOUNCES)) {
                     r += object_color[0];
                     g += object_color[1];
@@ -489,9 +534,9 @@ void raytracing(uint8_t *pixels, color background_color,
                     g += background_color[1];
                     b += background_color[2];
                 }
-                pixels[((i + (j * width)) * 3) + 0] = r * 255 / SAMPLES;
-                pixels[((i + (j * width)) * 3) + 1] = g * 255 / SAMPLES;
-                pixels[((i + (j * width)) * 3) + 2] = b * 255 / SAMPLES;
+                pixels[((i + (j * (*args).width)) * 3) + 0] = r * 255 / SAMPLES;
+                pixels[((i + (j * (*args).width)) * 3) + 1] = g * 255 / SAMPLES;
+                pixels[((i + (j * (*args).width)) * 3) + 2] = b * 255 / SAMPLES;
             }
         }
     }

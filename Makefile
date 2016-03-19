@@ -4,9 +4,9 @@ all: $(EXEC)
 
 CC ?= gcc
 CFLAGS = \
-	-std=gnu99 -Wall -O0 -g
+	-std=gnu99 -Wall -O0 -g -mavx2 -Wa,-q -fopenmp
 LDFLAGS = \
-	-lm
+	-lm -lgomp -lpthread
 
 ifeq ($(strip $(PROFILE)),1)
 PROF_FLAGS = -pg
@@ -26,7 +26,7 @@ OBJS := \
 $(EXEC): $(OBJS)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
-main.c: use-models.h
+main.o: use-models.h
 use-models.h: models.inc Makefile
 	@echo '#include "models.inc"' > use-models.h
 	@egrep "^(light|sphere|rectangular) " models.inc | \
