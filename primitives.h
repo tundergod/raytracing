@@ -6,42 +6,42 @@ typedef double point4[3];
 typedef double color[3];
 
 typedef struct {
-    color light_color; /**< scale (0,1) */
-    point3 position;
-    double intensity;
+	color light_color; /**< scale (0,1) */
+	point3 position;
+	double intensity;
 } light;
 
 typedef struct {
-    color fill_color; /**< RGB is in terms of 0.0 to 1.0 */
-    double Kd; /**< the diffuse component */
-    double Ks; /**< the specular */
-    double T;  /**< transmittance (fraction of light passed per unit) */
-    double R;  /**< reflectance (effectiveness in reflecting)*/
-    double index_of_refraction;
-    double phong_power; /**< the Phong cosine power for highlights */
+	color fill_color; /**< RGB is in terms of 0.0 to 1.0 */
+	double Kd; /**< the diffuse component */
+	double Ks; /**< the specular */
+	double T;  /**< transmittance (fraction of light passed per unit) */
+	double R;  /**< reflectance (effectiveness in reflecting)*/
+	double index_of_refraction;
+	double phong_power; /**< the Phong cosine power for highlights */
 } object_fill;
 
 typedef struct {
-    point3 center;
-    double radius;
-    object_fill sphere_fill;
+	point3 center;
+	double radius;
+	object_fill sphere_fill;
 } sphere;
 
 typedef struct {
-    point3 vertices[4];
-    point3 normal;
-    object_fill rectangular_fill;
+	point3 vertices[4];
+	point3 normal;
+	object_fill rectangular_fill;
 } rectangular;
 
 typedef struct {
-    point3 vrp;
-    point3 vpn;
-    point3 vup;
+	point3 vrp;
+	point3 vpn;
+	point3 vup;
 } viewpoint;
 
 typedef struct {
-    point3 point;
-    point3 normal;
+	point3 point;
+	point3 normal;
 } intersection;
 
 #define COPY_OBJECT_FILL(a, b) { \
